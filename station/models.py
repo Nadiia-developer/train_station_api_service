@@ -108,7 +108,9 @@ class Ticket(models.Model):
     journey = models.ForeignKey(
         Journey, on_delete=models.CASCADE, related_name="tickets"
     )
-    order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name="tickets")
+    order = models.ForeignKey(
+        Order, on_delete=models.CASCADE, related_name="tickets"
+    )
 
     class Meta:
         unique_together = ("cargo", "seat", "journey")
@@ -121,91 +123,47 @@ class Ticket(models.Model):
         return f"{self.journey} - (seat: {self.seat})"
 
     @staticmethod
-    def validate_cargo(cargo: int, cargo_num: int, error_to_raise):
-        if not (1 <= cargo <= cargo_num):
-            raise error_to_raise(
-                {"cargo": f"Cargo must be in range [1, {cargo_num}], not {cargo}"}
-            )
-
-    @staticmethod
-    def validate_seat(seat: int, places_in_cargo: int, error_to_raise):
-        if not (1 <= seat <= places_in_cargo):
-            raise error_to_raise(
-                {"cargo": f"Seat must be in range [1, {places_in_cargo}], not {seat}"}
-            )
+    def validate_ticket(cargo, seat, train, error_to_raise):
+        for ticket_attr_value, ticket_attr_name, train_attr_name in [
+            (cargo, "cargo", "cargo_num"),
+            (seat, "seat", "places_in_cargo"),
+        ]:
+            count_attrs = getattr(train, train_attr_name)
+            if not (1 <= ticket_attr_value <= count_attrs):
+                raise error_to_raise(
+                    {
+                        ticket_attr_name: f"{ticket_attr_name} "
+                                          f"number must be in available range: "
+                                          f"(1, {train_attr_name}): "
+                                          f"(1, {count_attrs})"
+                    }
+                )
 
     def clean(self):
-        Ticket.validate_cargo(self.cargo, self.journey.train.cargo_num, ValidationError)
-        Ticket.validate_seat(
-            self.seat, self.journey.train.places_in_cargo, ValidationError
+        Ticket.validate_ticket(
+            self.cargo,
+            self.seat,
+            self.journey.train,
+            ValidationError,
         )
 
     def save(
-        self, force_insert=False, force_update=False, using=None, update_fields=None
+            self,
+            force_insert=False,
+            force_update=False,
+            using=None,
+            update_fields=None,
     ):
         self.full_clean()
         return super(Ticket, self).save(
             force_insert, force_update, using, update_fields
         )
 
-    # @staticmethod
-    # def validate_ticket(cargo, seat, train):
-    #     for ticket_attr_value, ticket_attr_name, train_attr_name in [
-    #         ("cargo", "cargo", "cargo_num"),
-    #         ("seat", "seat", "places_in_cargo"),
-    #     ]:
-    #         count_attrs = getattr(train, train_attr_name)
-    #         if not (1 <= ticket_attr_value <= count_attrs):
-    #             raise ValidationError(
-    #                 {
-    #                     ticket_attr_name: f"{ticket_attr_name} "
-    #                                       f"number must be in available range: "
-    #                                       f"(1, {train_attr_name}): "
-    #                                       f"(1, {count_attrs})"
-    #                 }
-    #             )
-    #
-    # def clean(self):
-    #     Ticket.validate_ticket(
-    #         self.cargo,
-    #         self.seat,
-    #         self.journey.train,
-    #         ValidationError,
-    #     )
-    #
-    # def save(
-    #         self,
-    #         force_insert=False,
-    #         force_update=False,
-    #         using=None,
-    #         update_fields=None,
-    # ):
-    #     self.full_clean()
-    #     return super(Ticket, self).save(
-    #         force_insert, force_update, using, update_fields
-    #         )
-    #
-    # def __str__(self):
-    #     return (f"{str(self.journey)} (cargo: {self.cargo}, seat: {self.seat})")
+    def __str__(self):
+        return (
+            f"{str(self.journey)} (cargo: {self.cargo}, seat: {self.seat})"
+        )
 
-    # def clean(self):
-    #     if not (1 <= self.cargo <= self.journey.train.cargo_num):
-    #         raise ValidationError({"cargo": "Cargo number is out of bounds"})
-    #
-    #     if not (1 <= self.seat <= self.journey.train.places_in_cargo):
-    #         raise ValidationError({"seat": "Seat number is out of bounds"})
-    #
-    #     existing_tickets = Ticket.objects.filter(
-    #         journey=self.journey,
-    #         cargo=self.cargo,
-    #         seat=self.seat
-    #     )
-    #
-    #     if self.pk:
-    #         existing_tickets = existing_tickets.exclude(pk=self.pk)
-    #     if existing_tickets.exists():
-    #         raise ValidationError("Ticket already exists")
-    #
-    #     def save(self, *args, **kwargs):
-    #         self.full_clean()
-    #         super().save(*args, **kwargs)
+    class Meta:
+        unique_together = ("journey", "cargo", "seat")
+        ordering = ["cargo", "seat"]
