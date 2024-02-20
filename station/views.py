@@ -154,8 +154,20 @@ class JourneyViewSet(
     mixins.RetrieveModelMixin,
     GenericViewSet,
 ):
-    queryset = Journey.objects.all()
-    # queryset = Journey.objects.all().select_related("train", "route").prefetch_related("crews")
+    queryset = (
+        Journey.objects.all()
+        .select_related("route", "train")
+        .annotate(
+            seats_cargo_num_available=(
+                    F("train__cargo_num") - Count("tickets")
+            )
+        )
+        .annotate(
+            seats_places_in_cargo_available=(
+                F("train__places_in_cargo") - Count("tickets")
+            )
+        )
+    )
     serializer_class = JourneySerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
@@ -164,20 +176,8 @@ class JourneyViewSet(
 
         if self.action == "list":
             queryset = queryset.select_related("train").annotate(
-                tickets_places_in_cargo=Count("tickets")
+                count_taken_seats=Count("tickets")
             )
-
-        return queryset
-
-    def get_queryset(self):
-        queryset = self.queryset
-
-        if self.action == "list":
-            queryset = (
-                queryset.select_related("train").annotate(
-                    tickets_cargo_num=F("train__cargo_num") - Count("tickets")
-                )
-            ).order_by("id")
 
         return queryset
 
