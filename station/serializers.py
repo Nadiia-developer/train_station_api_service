@@ -118,8 +118,8 @@ class JourneyListSerializer(JourneySerializer):
     crews = serializers.StringRelatedField(many=True, read_only=True)
     seats_cargo_num_available = serializers.IntegerField(read_only=True)
     seats_places_in_cargo_available = serializers.IntegerField(read_only=True)
-    count_taken_seats = serializers.IntegerField(source="tickets.count")
-    count_taken_cargo = serializers.IntegerField(source="tickets.count")
+    count_taken_seats = serializers.IntegerField(read_only=True)
+    count_taken_cargo = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Journey
