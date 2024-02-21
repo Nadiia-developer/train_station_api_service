@@ -167,19 +167,15 @@ class JourneyViewSet(
                 F("train__places_in_cargo") - Count("tickets")
             )
         )
+        .annotate(
+            count_taken_seats=Count("tickets")
+        )
+        .annotate(
+            count_taken_cargo=Count("tickets")
+        )
     )
     serializer_class = JourneySerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
-
-    def get_queryset(self):
-        queryset = self.queryset
-
-        if self.action == "list":
-            queryset = queryset.select_related("train").annotate(
-                count_taken_seats=Count("tickets")
-            )
-
-        return queryset
 
     def get_serializer_class(self):
 
