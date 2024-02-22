@@ -114,7 +114,7 @@ class TrainViewSet(
     mixins.RetrieveModelMixin,
     GenericViewSet,
 ):
-    queryset = Train.objects.all().prefetch_related("train_type")
+    queryset = Train.objects.all().select_related("train_type")
     serializer_class = TrainSerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
@@ -156,10 +156,10 @@ class JourneyViewSet(
 ):
     queryset = (
         Journey.objects.all()
-        .select_related("route", "train")
-        .annotate(
-            seats_cargo_num_available=(
-                    F("train__cargo_num") - Count("tickets")
+        .prefetch_related("crews")
+        .select_related("route", "train", "train__train_type")
+        .annotate(seats_cargo_num_available=(
+                F("train__cargo_num") - Count("tickets")
             )
         )
         .annotate(
@@ -167,12 +167,8 @@ class JourneyViewSet(
                 F("train__places_in_cargo") - Count("tickets")
             )
         )
-        .annotate(
-            count_taken_seats=Count("tickets")
-        )
-        .annotate(
-            count_taken_cargo=Count("tickets")
-        )
+        .annotate(count_taken_seats=Count("tickets"))
+        .annotate(count_taken_cargo=Count("tickets"))
     )
     serializer_class = JourneySerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
