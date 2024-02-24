@@ -6,9 +6,9 @@
 
 ### Install PostgreSQL and create db
 
-*Clone project from GitHub*
+*Clone project from [GitHub](https://github.com/Nadiia-developer/train_station_api_service.git)*
 
-git clone [GitHub](https://github.com)
+git clone https://github.com/Nadiia-developer/train_station_api_service.git
 
 > ### *Windows PowerShell / Mac Terminal*
 > python -m venv venv
