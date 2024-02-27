@@ -78,10 +78,10 @@ class Journey(models.Model):
     train = models.ForeignKey(Train, on_delete=models.CASCADE)
     departure_time = models.DateTimeField()
     arrival_time = models.DateTimeField()
-    crews = models.ManyToManyField(Crew, related_name="journey")
+    crews = models.ManyToManyField(Crew, related_name="journeys")
 
     class Meta:
-        verbose_name_plural = "journey"
+        verbose_name_plural = "journeys"
         ordering = ["-departure_time"]
 
     def __str__(self):
