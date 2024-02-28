@@ -12,7 +12,11 @@ from rest_framework.response import Response
 from station.permissions import IsAdminOrIfAuthenticatedReadOnly
 
 
-from rest_framework import mixins
+from rest_framework.mixins import (
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin
+)
 from rest_framework.viewsets import GenericViewSet
 from station.models import (
     Station,
@@ -44,19 +48,21 @@ from station.serializers import (
 
 
 class StationViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
     GenericViewSet,
 ):
-    queryset = Station.objects.all()
+    queryset = Station.objects.all().prefetch_related(
+        "departure_station", "arrival_station"
+    )
     serializer_class = StationSerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
 
 
 class RouteViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
     GenericViewSet,
 ):
     queryset = Route.objects.all().select_related("source", "destination")
@@ -85,12 +91,12 @@ class RouteViewSet(
         if self.action == "retrieve":
             return RouteDetailSerializer
 
-        return RouteSerializer
+        return super().get_serializer_class()
 
 
 class CrewViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
     GenericViewSet,
 ):
     queryset = Crew.objects.all()
@@ -99,8 +105,8 @@ class CrewViewSet(
 
 
 class TrainTypeViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
     GenericViewSet,
 ):
     queryset = TrainType.objects.all()
@@ -109,9 +115,9 @@ class TrainTypeViewSet(
 
 
 class TrainViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
     GenericViewSet,
 ):
     queryset = Train.objects.all().select_related("train_type")
@@ -128,7 +134,7 @@ class TrainViewSet(
         if self.action == "upload_image":
             return TrainImageSerializer
 
-        return TrainSerializer
+        return super().get_serializer_class()
 
     @action(
         methods=["POST"],
@@ -147,19 +153,16 @@ class TrainViewSet(
 
 
 class JourneyViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
     GenericViewSet,
 ):
     queryset = (
         Journey.objects.all()
-        .prefetch_related("crews")
+        .prefetch_related("crews", "tickets")
         .select_related("route", "train", "train__train_type")
-        .annotate(seats_cargo_num_available=(
-                F("train__cargo_num") - Count("tickets")
-            )
-        )
+        .annotate(seats_cargo_num_available=(F("train__cargo_num") - Count("tickets")))
         .annotate(
             seats_places_in_cargo_available=(
                 F("train__places_in_cargo") - Count("tickets")
@@ -179,7 +182,7 @@ class JourneyViewSet(
         if self.action == "retrieve":
             return JourneyDetailSerializer
 
-        return JourneySerializer
+        return super().get_serializer_class()
 
     @staticmethod
     def _params_to_ints(qs):
@@ -242,9 +245,9 @@ class OrderPagination(PageNumberPagination):
 
 
 class OrderViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
     GenericViewSet,
 ):
     queryset = Order.objects.all()
@@ -266,18 +269,22 @@ class OrderViewSet(
         if self.action == "list":
             return OrderListSerializer
 
-        return OrderSerializer
+        return super().get_serializer_class()
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 
 class TicketViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.RetrieveModelMixin,
+    CreateModelMixin,
+    ListModelMixin,
+    RetrieveModelMixin,
     GenericViewSet,
 ):
-    queryset = Ticket.objects.all()
+    queryset = (
+        Ticket.objects.all()
+        .select_related("journey", "journey__train", "order", "journey__route")
+        .prefetch_related("journey__crews")
+    )
     serializer_class = TicketSerializer
     permission_classes = (IsAdminOrIfAuthenticatedReadOnly,)
