@@ -92,7 +92,7 @@ git clone https://github.com/Nadiia-developer/train_station_api_service.git
 > - /api/station/journeys/?departure_time=2024-02-11
 
 
-![img.png](img.png)
+![Train Station API Service](/img/img.png)
 
 
 
